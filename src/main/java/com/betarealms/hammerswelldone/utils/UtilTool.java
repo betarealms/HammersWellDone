@@ -1,9 +1,20 @@
 package com.betarealms.hammerswelldone.utils;
 
 import com.betarealms.hammerswelldone.types.Tier;
+import com.betarealms.hammerswelldone.types.Tool;
 import com.betarealms.hammerswelldone.types.Type;
+import java.util.ArrayList;
+import java.util.List;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class UtilTool {
+
+  private UtilTool() {
+    throw new IllegalStateException("Utility class");
+  }
 
   /**
    * Encodes Type and Tier into a single int using bitwise operations.
@@ -25,5 +36,26 @@ public class UtilTool {
    */
   public static Tier decodeTier(int customModelData) {
     return Tier.values()[(customModelData >> 4) & 0xF];  // Next 4 bits
+  }
+
+  /**
+   * Creates an ItemStack from the given Material and Tool.
+   */
+  public static ItemStack getItemStack(Material material, Tool tool) {
+    ItemStack result = new ItemStack(material, 1);
+
+    // Set ?eta
+    ItemMeta meta = result.getItemMeta();
+    meta.setCustomModelData(tool.getCustomModelData());
+    meta.setDisplayName(ChatColor.RESET + tool.getDisplayName(material));
+    meta.setLore(tool.getLore());
+    result.setItemMeta(meta);
+
+    return result;
+
+  }
+  public static ItemStack getItemStack(Material material, Tier tier, Type type) {
+    return null;
+
   }
 }
