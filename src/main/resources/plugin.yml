@@ -4,4 +4,14 @@ main: com.betarealms.hammerswelldone.HammersWellDone
 api-version: '1.20'
 prefix: HammersWellDone
 authors: [BetaRealms]
+description: Adds advanced tools inspired by Tinkers Construct
 website: https://betarealms.com
+commands:
+  hwd:
+    description: Get the tools from HammersWellDone
+    usage: /hwd <tool>
+    permission: hammerswelldone.give
+permissions:
+  hammerswelldone.give:
+    description: Allows /hwd command that gives tools from HammersWellDone
+    default: op
