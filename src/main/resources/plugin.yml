@@ -1,0 +1,7 @@
+name: HammersWellDone
+version: '${project.version}'
+main: com.betarealms.hammerswelldone.HammersWellDone
+api-version: '1.20'
+prefix: HammersWellDone
+authors: [BetaRealms]
+website: https://betarealms.com
