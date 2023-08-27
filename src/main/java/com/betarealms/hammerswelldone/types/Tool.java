@@ -2,12 +2,25 @@ package com.betarealms.hammerswelldone.types;
 
 import com.betarealms.hammerswelldone.utils.ToolManager;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 
+/**
+ * This enum contains all the Tools available, table below.
+ * +---------+--------------+---------------------+----------------+
+ * |  Type   | Vanilla Tier | Advanced Tier (3x3) | God Tier (5x5) |
+ * +---------+--------------+---------------------+----------------+
+ * | Pickaxe | Pickaxe      | Hammer              | Mjolnir        |
+ * | Shovel  | Shovel       | Excavator           | Terraformer    |
+ * | Axe     | Axe          | Lumber Axe          | Lumberon       |
+ * | Hoe     | Hoe          | Mattock             | Cropmaster     |
+ * | Super   | HandyTool    | MultiTool           | DeityTool      |
+ * +---------+--------------+---------------------+----------------+
+ */
 public enum Tool {
 
   // Pickaxe family
@@ -31,9 +44,9 @@ public enum Tool {
   CROPMASTER(Type.HOE, Tier.GOD, "Cropmaster"),
 
   // Super family
-  HANDYTOOL(Type.SUPER, Tier.VANILLA, "HandyTool" + ChatColor.WHITE + " [WIP]"),
-  MULTITOOL(Type.SUPER, Tier.ADVANCED, "MultiTool" + ChatColor.WHITE + " [WIP]"),
-  DEITYTOOL(Type.SUPER, Tier.GOD, "DeityTool" + ChatColor.WHITE + " [WIP]"),
+  HANDYTOOL(Type.SUPER, Tier.VANILLA, "HandyTool [WIP]"),
+  MULTITOOL(Type.SUPER, Tier.ADVANCED, "MultiTool [WIP]"),
+  DEITYTOOL(Type.SUPER, Tier.GOD, "DeityTool [WIP]"),
   ;
 
   // Init variables
@@ -58,7 +71,7 @@ public enum Tool {
 
   // Get strings for Lore based on Tier
   static {
-    color = new HashMap<>();
+    color = new EnumMap<>(Tier.class);
     color.put(Tier.VANILLA, ChatColor.YELLOW);
     color.put(Tier.ADVANCED, ChatColor.AQUA);
     color.put(Tier.GOD, ChatColor.LIGHT_PURPLE);
@@ -66,7 +79,7 @@ public enum Tool {
 
   // Get strings for Lore based on Type
   static {
-    loreType = new HashMap<>();
+    loreType = new EnumMap<>(Type.class);
     loreType.put(Type.PICKAXE, "This is a Pickaxe substitute.");
     loreType.put(Type.SHOVEL, "This is a Shovel substitute.");
     loreType.put(Type.AXE, "This is an Axe substitute.");
@@ -76,7 +89,7 @@ public enum Tool {
 
   // Get strings for Lore based on Tier
   static {
-    loreTier = new HashMap<>();
+    loreTier = new EnumMap<>(Tier.class);
     loreTier.put(Tier.VANILLA, null);
     loreTier.put(Tier.ADVANCED, "It covers area of 3x3 blocks.");
     loreTier.put(Tier.GOD, "It covers area of 5x5 blocks.");
@@ -100,6 +113,12 @@ public enum Tool {
     return tier;
   }
 
+  /**
+   * Generates and returns the display name of the tool based on the provided Material and Tier.
+   *
+   * @param material The Material of the base vanilla tool
+   * @return A String representing the formatted display name
+   */
   public String getDisplayName(Material material) {
     // Split the string into material and tool parts
     String[] parts = material.name().split("_", 2);
@@ -109,13 +128,27 @@ public enum Tool {
     return color.get(this.tier) + materialNames.get(parts[0]) + " " + this.name;
   }
 
+  /**
+   * Returns the lore of the tool based on the provided Material and Tier.
+   *
+   * @return List of Strings representing the lore
+   */
   public List<String> getLore() {
     List<String> lore = new ArrayList<>();
     lore.add(ChatColor.GRAY + loreType.get(this.type));
-    if (loreTier.get(this.tier) != null) { lore.add(ChatColor.GRAY + loreTier.get(this.tier)); }
+    if (loreTier.get(this.tier) != null) {
+      lore.add(ChatColor.GRAY + loreTier.get(this.tier));
+    }
     return lore;
   }
 
+  /**
+   * Returns the Tool based on the provided Material and Tier.
+   *
+   * @param type Tool type
+   * @param tier Tool tier
+   * @return a Tool
+   */
   public static Tool getTool(Type type, Tier tier) {
     for (Tool tool : Tool.values()) {
       if (tool.getType() == type && tool.getTier() == tier) {

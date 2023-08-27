@@ -3,11 +3,15 @@ package com.betarealms.hammerswelldone.utils;
 import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.types.Tool;
 import com.betarealms.hammerswelldone.types.Type;
+import java.util.Objects;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+/**
+ * This is a collection of utilities for working with Tools.
+ */
 public class ToolManager {
 
   private ToolManager() {
@@ -42,8 +46,9 @@ public class ToolManager {
   public static ItemStack getItemStack(Material material, Tool tool) {
     ItemStack result = new ItemStack(material, 1);
 
-    // Set ?eta
+    // Set meta
     ItemMeta meta = result.getItemMeta();
+    assert meta != null;
     meta.setCustomModelData(tool.getCustomModelData());
     meta.setDisplayName(ChatColor.RESET + tool.getDisplayName(material));
     meta.setLore(tool.getLore());
@@ -54,6 +59,6 @@ public class ToolManager {
   }
 
   public static ItemStack getItemStack(Material material, Type type, Tier tier) {
-    return getItemStack(material, Tool.getTool(type, tier));
+    return getItemStack(material, Objects.requireNonNull(Tool.getTool(type, tier)));
   }
 }

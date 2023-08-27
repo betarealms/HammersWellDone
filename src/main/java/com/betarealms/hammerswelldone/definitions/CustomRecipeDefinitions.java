@@ -1,76 +1,139 @@
 package com.betarealms.hammerswelldone.definitions;
 
+import static java.lang.Character.forDigit;
+
 import com.betarealms.hammerswelldone.objects.CustomRecipe;
 import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.ToolManager;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import java.util.ArrayList;
-import java.util.List;
 
+/**
+ * This class contains all custom recipes.
+ */
 public class CustomRecipeDefinitions {
-  public static List<CustomRecipe> getRecipes() {
-    List<CustomRecipe> recipes = new ArrayList<>();
+  private CustomRecipeDefinitions() {
+    // This constructor is intentionally empty. Nothing to initialize.
+    throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+  }
 
-    // Initialize Tier ADVANCED and GOD recipes except for SUPER
+  // Initialize Tier ADVANCED and GOD recipes except for SUPER
+  private static void initializeTools(
+      List<CustomRecipe> recipes, HashMap<String, Material[]> materials) {
+    // Iterate through all tools except for SUPER (vanilla tools)
     for (Type type : new Type[] {Type.PICKAXE, Type.SHOVEL, Type.AXE, Type.HOE}) {
+      // Iterate through all tiers except for VANILLA
       for (Tier tier : new Tier[] {Tier.ADVANCED, Tier.GOD}) {
-        for (Map.Entry<String, Material[]> entry : new java.util.HashMap<String, Material[]>() {{
-          put("WOODEN", new Material[] {Material.OAK_WOOD, Material.OAK_LOG});
-          put("STONE", new Material[] {Material.COBBLESTONE, Material.STONE});
-          put("IRON", new Material[] {Material.IRON_INGOT, Material.IRON_BLOCK});
-          put("GOLDEN", new Material[] {Material.GOLD_INGOT, Material.GOLD_BLOCK});
-          put("DIAMOND", new Material[] {Material.DIAMOND, Material.DIAMOND_BLOCK});
-        }}.entrySet()) {
-          CustomRecipe customRecipe = new CustomRecipe(ToolManager.getItemStack(Material.getMaterial(entry.getKey() + "_" + type.name()), type, tier));
+        // Iterate through all materials
+        for (Map.Entry<String, Material[]> entry : materials.entrySet()) {
+          // Create a new custom recipe
+          CustomRecipe customRecipe = new CustomRecipe(
+              ToolManager.getItemStack(Material.getMaterial(
+                  entry.getKey() + "_" + type.name()), type, tier));
 
+          // Add an ingot or a block depending on the tier
           customRecipe.setIngredient('V', new ItemStack(entry.getValue()[tier.getBit() - 1]));
+          // Add an item
           customRecipe.setIngredient('I', new ItemStack(entry.getValue()[0]));
-          customRecipe.setIngredient('T', tier == Tier.ADVANCED ? new ItemStack(Material.getMaterial(entry.getKey() + "_" + type.name())) : ToolManager.getItemStack(Material.getMaterial(entry.getKey() + "_" + type.name()), type, Tier.ADVANCED));
+          // Add the center tool
+          customRecipe.setIngredient('T', tier == Tier.ADVANCED
+              ? new ItemStack(
+                  getMaterialFromType(entry.getKey(), type))
+              : ToolManager.getItemStack(
+                  getMaterialFromType(entry.getKey(), type), type, Tier.ADVANCED));
+          // Add the stick
           customRecipe.setIngredient('S', new ItemStack(Material.STICK));
 
+          // Add the shape
           customRecipe.shape(
               "VI ",
               "ITI",
               "SIV"
           );
 
+          // Save the recipe
           recipes.add(customRecipe);
         }
       }
     }
+  }
 
-    // Initialize SUPER recipes
+  private static void initializeSupers(
+      List<CustomRecipe> recipes, HashMap<String, Material[]> materials) {
+    // Iterate through all tiers
     for (Tier tier : Tier.values()) {
-      for (Map.Entry<String, Material[]> entry : new java.util.HashMap<String, Material[]>() {{
-        put("WOODEN", new Material[] {Material.OAK_WOOD, Material.OAK_LOG});
-        put("STONE", new Material[] {Material.COBBLESTONE, Material.STONE});
-        put("IRON", new Material[] {Material.IRON_INGOT, Material.IRON_BLOCK});
-        put("GOLDEN", new Material[] {Material.GOLD_INGOT, Material.GOLD_BLOCK});
-        put("DIAMOND", new Material[] {Material.DIAMOND, Material.DIAMOND_BLOCK});
-        put("NETHERITE", new Material[] {Material.NETHER_BRICK, Material.NETHERITE_BLOCK});
-      }}.entrySet()) {
-        CustomRecipe customRecipe = new CustomRecipe(ToolManager.getItemStack(Material.getMaterial(entry.getKey() + "_SWORD"), Type.SUPER, tier));
+      // Iterate through all materials
+      for (Map.Entry<String, Material[]> entry : materials.entrySet()) {
+        // Create a new custom recipe (use SWORD for the SUPER)
+        CustomRecipe customRecipe = new CustomRecipe(
+            ToolManager.getItemStack(
+                Material.getMaterial(entry.getKey() + "_SWORD"), Type.SUPER, tier));
 
+        // Add an ingot
         customRecipe.setIngredient('I', new ItemStack(entry.getValue()[0]));
+        // Add a block
         customRecipe.setIngredient('B', new ItemStack(entry.getValue()[1]));
-        customRecipe.setIngredient('1', tier == Tier.VANILLA ? new ItemStack(Material.getMaterial(entry.getKey() + "_PICKAXE")) : ToolManager.getItemStack(Material.getMaterial(entry.getKey() + "_PICKAXE"), Type.PICKAXE, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD));
-        customRecipe.setIngredient('2', tier == Tier.VANILLA ? new ItemStack(Material.getMaterial(entry.getKey() + "_SHOVEL")) : ToolManager.getItemStack(Material.getMaterial(entry.getKey() + "_SHOVEL"), Type.SHOVEL, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD));
-        customRecipe.setIngredient('3', tier == Tier.VANILLA ? new ItemStack(Material.getMaterial(entry.getKey() + "_AXE")) : ToolManager.getItemStack(Material.getMaterial(entry.getKey() + "_AXE"), Type.AXE, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD));
-        customRecipe.setIngredient('4', tier == Tier.VANILLA ? new ItemStack(Material.getMaterial(entry.getKey() + "_HOE")) : ToolManager.getItemStack(Material.getMaterial(entry.getKey() + "_HOE"), Type.HOE, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD));
 
+        // Define vanilla type
+        final Type[] vanillaTypes
+            = new Type[] {Type.PICKAXE, Type.SHOVEL, Type.AXE, Type.HOE};
+
+        // Add the four tools
+        for (int i = 1; i < 5; i++) {
+          customRecipe.setIngredient(forDigit(i, 10), tier == Tier.VANILLA
+              ? new ItemStack(
+                getMaterialFromType(entry.getKey(), vanillaTypes[i - 1]))
+              : ToolManager.getItemStack(
+                getMaterialFromType(entry.getKey(), vanillaTypes[i - 1]),
+                vanillaTypes[i - 1], tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD)
+          );
+        }
+
+        // Add the shape
         customRecipe.shape(
             "I1I",
             "2B3",
             "I4I"
         );
 
+        // Save the recipe
         recipes.add(customRecipe);
       }
     }
+  }
+
+  /**
+   * Get List of all custom recipes.
+   *
+   * @return List of custom recipes
+   */
+  public static List<CustomRecipe> getRecipes() {
+    // Define materials
+    final HashMap<String, Material[]> materials = new HashMap<>(5);
+    materials.put("WOODEN", new Material[] {Material.OAK_PLANKS, Material.OAK_LOG});
+    materials.put("STONE", new Material[] {Material.COBBLESTONE, Material.STONE});
+    materials.put("IRON", new Material[] {Material.IRON_INGOT, Material.IRON_BLOCK});
+    materials.put("GOLDEN", new Material[] {Material.GOLD_INGOT, Material.GOLD_BLOCK});
+    materials.put("DIAMOND", new Material[] {Material.DIAMOND, Material.DIAMOND_BLOCK});
+
+    // Initialize recipes
+    List<CustomRecipe> recipes = new ArrayList<>();
+
+    // Initialize Tier ADVANCED and GOD recipes except for SUPER
+    initializeTools(recipes, materials);
+
+    // Initialize SUPER recipes
+    initializeSupers(recipes, materials);
 
     return recipes;
+  }
+
+  private static Material getMaterialFromType(String material, Type type) {
+    return Material.getMaterial(material + "_" + type.name());
   }
 }

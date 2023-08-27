@@ -1,5 +1,8 @@
 package com.betarealms.hammerswelldone.utils;
 
+import static org.bukkit.plugin.java.JavaPlugin.getPlugin;
+
+import com.betarealms.hammerswelldone.HammersWellDone;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -51,20 +54,10 @@ public class BlockManager {
 
     // Adjust according to the BlockFace
     switch (blockFace) {
-      case UP:
-      case DOWN:
-        startY = endY = y;
-        break;
-      case EAST:
-      case WEST:
-        startX = endX = x;
-        break;
-      case NORTH:
-      case SOUTH:
-        startZ = endZ = z;
-        break;
-      default:
-        break;
+      case UP, DOWN -> startY = endY = y;
+      case EAST, WEST -> startX = endX = x;
+      case NORTH, SOUTH -> startZ = endZ = z;
+      default -> getPlugin(HammersWellDone.class).getLogger().severe("Unexpected BlockFace value");
     }
 
     // Loop and populate blocks list

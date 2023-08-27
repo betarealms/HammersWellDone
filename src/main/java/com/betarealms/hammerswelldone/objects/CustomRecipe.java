@@ -1,8 +1,12 @@
 package com.betarealms.hammerswelldone.objects;
-import org.bukkit.inventory.ItemStack;
+
 import java.util.HashMap;
 import java.util.Map;
+import org.bukkit.inventory.ItemStack;
 
+/**
+ * This is an object for Custom Recipes.
+ */
 public class CustomRecipe {
   private final ItemStack output;
   private final ItemStack[][] layout = new ItemStack[3][3];
@@ -12,6 +16,11 @@ public class CustomRecipe {
     this.output = output;
   }
 
+  /**
+   * This defines the shape of the custom recipe.
+   *
+   * @param rows Three rows
+   */
   public void shape(String... rows) {
     for (int i = 0; i < rows.length; i++) {
       for (int j = 0; j < rows[i].length(); j++) {

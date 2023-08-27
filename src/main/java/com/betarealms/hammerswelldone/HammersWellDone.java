@@ -1,25 +1,18 @@
 package com.betarealms.hammerswelldone;
 
 import com.betarealms.hammerswelldone.events.OnBlockBreak;
-import com.betarealms.hammerswelldone.events.OnCommand;
-import com.betarealms.hammerswelldone.events.OnTabComplete;
 import com.betarealms.hammerswelldone.utils.CustomRecipeManager;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * The main plugin class.
  */
+@SuppressWarnings("unused") // This class is actually used by the Spigot API
 public final class HammersWellDone extends JavaPlugin {
 
   // On plugin enable
   @Override
   public void onEnable() {
-
-    // Register commands
-    getServer().getPluginCommand("hwd").setExecutor(new OnCommand());
-    getServer().getPluginCommand("hwd").setTabCompleter(new OnTabComplete());
-
     // Register events
     getServer().getPluginManager().registerEvents(new CustomRecipeManager(), this);
     getServer().getPluginManager().registerEvents(new OnBlockBreak(), this);
@@ -30,12 +23,6 @@ public final class HammersWellDone extends JavaPlugin {
   // On plugin disable
   @Override
   public void onDisable() {
-
     getLogger().info("Disabled");
-  }
-  public static ItemStack createHammer() {
-
-
-    return null;
   }
 }

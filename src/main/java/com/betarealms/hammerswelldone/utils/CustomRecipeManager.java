@@ -2,13 +2,16 @@ package com.betarealms.hammerswelldone.utils;
 
 import com.betarealms.hammerswelldone.definitions.CustomRecipeDefinitions;
 import com.betarealms.hammerswelldone.objects.CustomRecipe;
+import java.util.List;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
-import java.util.List;
 
+/**
+ * This class handles all custom recipe management logic.
+ */
 public class CustomRecipeManager implements Listener {
   private final List<CustomRecipe> customRecipes;
 
@@ -16,6 +19,11 @@ public class CustomRecipeManager implements Listener {
     this.customRecipes = CustomRecipeDefinitions.getRecipes();
   }
 
+  /**
+   * This method is called when a player changes items in workbench.
+   *
+   * @param event prepare item
+   */
   @EventHandler
   public void onCraftItem(PrepareItemCraftEvent event) {
     CraftingInventory inv = event.getInventory();
@@ -42,25 +50,36 @@ public class CustomRecipeManager implements Listener {
   }
 
   private boolean isMatchingItem(ItemStack invItem, ItemStack layoutItem) {
+    // If both items are null, they are the same
     if (layoutItem == null && invItem == null) {
       return true;
     }
+
+    // If only one of them is null, they are not
     if (layoutItem == null || invItem == null) {
       return false;
     }
-    if (layoutItem.getItemMeta().hasCustomModelData()
-          && (!invItem.getItemMeta().hasCustomModelData()
-          || invItem.getItemMeta().getCustomModelData() != layoutItem.getItemMeta().getCustomModelData())) {
+
+    // Prevent NullPointerException
+    if (layoutItem.getItemMeta() == null
+        || invItem.getItemMeta() == null) {
       return false;
     }
+
+    // Check if custom model data of layoutItem and invItem are different
+    if (layoutItem.getItemMeta().hasCustomModelData()
+          && (!invItem.getItemMeta().hasCustomModelData()
+          || invItem.getItemMeta().getCustomModelData()
+              != layoutItem.getItemMeta().getCustomModelData())) {
+      return false;
+    }
+
+    // Check if custom model data of layoutItem and invItem are the same
     if (invItem.getItemMeta().hasCustomModelData()
           && !layoutItem.getItemMeta().hasCustomModelData()) {
       return false;
     }
-    if (layoutItem.getType().equals(invItem.getType())) {
-      return true;
-    }
 
-    return false;
+    return layoutItem.getType().equals(invItem.getType());
   }
 }
