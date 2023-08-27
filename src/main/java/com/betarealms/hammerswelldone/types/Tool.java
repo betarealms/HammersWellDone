@@ -1,8 +1,7 @@
 package com.betarealms.hammerswelldone.types;
 
-import com.betarealms.hammerswelldone.utils.UtilTool;
+import com.betarealms.hammerswelldone.utils.ToolManager;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +31,9 @@ public enum Tool {
   CROPMASTER(Type.HOE, Tier.GOD, "Cropmaster"),
 
   // Super family
-  HANDYTOOL(Type.SUPER, Tier.VANILLA, "HandyTool"),
-  MULTITOOL(Type.SUPER, Tier.ADVANCED, "MultiTool"),
-  DEITYTOOL(Type.SUPER, Tier.GOD, "DeityTool"),
+  HANDYTOOL(Type.SUPER, Tier.VANILLA, "HandyTool" + ChatColor.WHITE + " [WIP]"),
+  MULTITOOL(Type.SUPER, Tier.ADVANCED, "MultiTool" + ChatColor.WHITE + " [WIP]"),
+  DEITYTOOL(Type.SUPER, Tier.GOD, "DeityTool" + ChatColor.WHITE + " [WIP]"),
   ;
 
   // Init variables
@@ -90,7 +89,7 @@ public enum Tool {
   }
 
   public int getCustomModelData() {
-    return UtilTool.encodeCustomModelData(type, tier);
+    return ToolManager.encodeCustomModelData(type, tier);
   }
 
   public Type getType() {
@@ -113,8 +112,17 @@ public enum Tool {
   public List<String> getLore() {
     List<String> lore = new ArrayList<>();
     lore.add(ChatColor.GRAY + loreType.get(this.type));
-    lore.add(ChatColor.GRAY + loreTier.get(this.tier));
+    if (loreTier.get(this.tier) != null) { lore.add(ChatColor.GRAY + loreTier.get(this.tier)); }
     return lore;
+  }
+
+  public static Tool getTool(Type type, Tier tier) {
+    for (Tool tool : Tool.values()) {
+      if (tool.getType() == type && tool.getTier() == tier) {
+        return tool;
+      }
+    }
+    return null;
   }
 }
 

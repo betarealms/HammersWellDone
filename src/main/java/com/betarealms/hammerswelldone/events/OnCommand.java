@@ -1,7 +1,8 @@
 package com.betarealms.hammerswelldone.events;
 
+import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.types.Tool;
-import com.betarealms.hammerswelldone.utils.UtilTool;
+import com.betarealms.hammerswelldone.utils.ToolManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -22,7 +23,9 @@ public class OnCommand implements CommandExecutor {
 
     // Debug
     Player player = (Player) sender;
-    player.getInventory().addItem(UtilTool.getItemStack(Material.WOODEN_HOE, Tool.HANDYTOOL));
+    player.getInventory().addItem(ToolManager.getItemStack(Material.WOODEN_HOE, Tool.HANDYTOOL));
+
+    player.sendMessage(Tier.GOD.getBit() + "");
 
     return true;
   }

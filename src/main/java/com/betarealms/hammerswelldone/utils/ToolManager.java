@@ -3,16 +3,14 @@ package com.betarealms.hammerswelldone.utils;
 import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.types.Tool;
 import com.betarealms.hammerswelldone.types.Type;
-import java.util.ArrayList;
-import java.util.List;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-public class UtilTool {
+public class ToolManager {
 
-  private UtilTool() {
+  private ToolManager() {
     throw new IllegalStateException("Utility class");
   }
 
@@ -54,8 +52,8 @@ public class UtilTool {
     return result;
 
   }
-  public static ItemStack getItemStack(Material material, Tier tier, Type type) {
-    return null;
 
+  public static ItemStack getItemStack(Material material, Type type, Tier tier) {
+    return getItemStack(material, Tool.getTool(type, tier));
   }
 }
