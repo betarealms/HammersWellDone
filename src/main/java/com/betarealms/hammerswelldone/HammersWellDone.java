@@ -1,11 +1,15 @@
 package com.betarealms.hammerswelldone;
 
+import com.betarealms.hammerswelldone.events.OnBlockBreak;
 import com.betarealms.hammerswelldone.events.OnCommand;
 import com.betarealms.hammerswelldone.events.OnTabComplete;
 import com.betarealms.hammerswelldone.utils.CustomRecipeManager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * The main plugin class.
+ */
 public final class HammersWellDone extends JavaPlugin {
 
   // On plugin enable
@@ -16,8 +20,9 @@ public final class HammersWellDone extends JavaPlugin {
     getServer().getPluginCommand("hwd").setExecutor(new OnCommand());
     getServer().getPluginCommand("hwd").setTabCompleter(new OnTabComplete());
 
-    // Register recipe manager
+    // Register events
     getServer().getPluginManager().registerEvents(new CustomRecipeManager(), this);
+    getServer().getPluginManager().registerEvents(new OnBlockBreak(), this);
 
     getLogger().info("Enabled");
   }
