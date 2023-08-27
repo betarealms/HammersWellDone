@@ -26,14 +26,14 @@ public class ToolManager {
    * Decodes the Type from the given encoded int.
    */
   public static Type decodeType(int customModelData) {
-    return Type.values()[customModelData & 0xF];  // Lower 4 bits
+    return Type.values()[(customModelData - 11200100) & 0xF];  // Lower 4 bits
   }
 
   /**
    * Decodes the Tier from the given encoded int.
    */
   public static Tier decodeTier(int customModelData) {
-    return Tier.values()[(customModelData >> 4) & 0xF];  // Next 4 bits
+    return Tier.values()[((customModelData - 11200100) >> 4) & 0xF];  // Next 4 bits
   }
 
   /**
