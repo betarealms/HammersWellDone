@@ -8,10 +8,10 @@ description: Adds advanced tools inspired by Tinkers Construct
 website: https://betarealms.com
 commands:
   hwd:
-    description: Get the tools from HammersWellDone
-    usage: /hwd <tool>
-    permission: hammerswelldone.give
+    description: HammersWellDone Command. Probably does nothing. Used for debug.
+    usage: /hwd
+#    permission: hammerswelldone.command
 permissions:
-  hammerswelldone.give:
-    description: Allows /hwd command that gives tools from HammersWellDone
+  hammerswelldone.command:
+    description: Allows /hwd command that does stuff
     default: op
