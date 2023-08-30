@@ -10,7 +10,7 @@ commands:
   hwd:
     description: HammersWellDone Command. Probably does nothing. Used for debug.
     usage: /hwd
-#    permission: hammerswelldone.command
+    permission: hammerswelldone.command
 permissions:
   hammerswelldone.command:
     description: Allows /hwd command that does stuff

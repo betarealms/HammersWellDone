@@ -2,10 +2,13 @@ package com.betarealms.hammerswelldone.utils;
 
 import com.betarealms.hammerswelldone.definitions.CustomRecipeDefinitions;
 import com.betarealms.hammerswelldone.objects.CustomRecipe;
+import com.betarealms.hammerswelldone.types.Type;
 import java.util.List;
+import java.util.Objects;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.inventory.PrepareSmithingEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -81,5 +84,23 @@ public class CustomRecipeManager implements Listener {
     }
 
     return layoutItem.getType().equals(invItem.getType());
+  }
+
+  /**
+   * This is used to block upgrading SUPER tools to netherite.
+   *
+   * @param event PrepareItemCraftEvent
+   */
+  @EventHandler
+  public void onPrepareSmithing(PrepareSmithingEvent event) {
+    // Get the items in the input slots
+    ItemStack[] inputs = event.getInventory().getContents();
+
+    // Check if item in slot 1 is a SUPER tool
+    if (inputs[1] != null
+        && ToolManager.isCustomTool(Objects.requireNonNull(inputs[1].getItemMeta()))
+        && ToolManager.decodeType(inputs[1].getItemMeta().getCustomModelData()) == Type.SUPER) {
+      event.setResult(null);
+    }
   }
 }

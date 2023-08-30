@@ -1,10 +1,10 @@
 package com.betarealms.hammerswelldone.events;
 
-import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
-import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -23,10 +23,10 @@ import org.bukkit.inventory.meta.ItemMeta;
  */
 public class OnBlockBreak implements Listener {
   // Using a HashMap to store the BlockFace for each player.
-  private final HashMap<UUID, BlockFace> playerBlockFaceMap = new HashMap<>();
+  private final ConcurrentHashMap<UUID, BlockFace> playerBlockFaceMap = new ConcurrentHashMap<>();
 
   // This is used to keep track whether to stay in the block breaking loop.
-  private final HashMap<UUID, Block> playerBreakingMap = new HashMap<>();
+  private final ConcurrentHashMap<UUID, Integer> playerBreakingMap = new ConcurrentHashMap<>();
 
   /**
    * This triggers on player , for ex. when punching.
@@ -46,7 +46,7 @@ public class OnBlockBreak implements Listener {
    *
    * @param event BlockBreakEvent
    */
-  @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+  @EventHandler(priority = EventPriority.LOW)
   public void onBlockBreak(BlockBreakEvent event) {
     // Get player who broke the block
     Player player = event.getPlayer();
@@ -68,9 +68,7 @@ public class OnBlockBreak implements Listener {
     }
 
     // Check if tool isn't from this plugin
-    if (!meta.hasCustomModelData()
-        || (ToolManager.decodeTier(meta.getCustomModelData()) != Tier.ADVANCED
-        && ToolManager.decodeTier(meta.getCustomModelData()) != Tier.GOD)) {
+    if (!ToolManager.isCustomTool(meta)) {
       return;
     }
 
@@ -79,31 +77,36 @@ public class OnBlockBreak implements Listener {
 
     // Is this in a recursive loop?
     // Does playerBreakingMap contain a key for this player?
-    // Is the block being broken the same as the mined block?
+    // Is the block being broken not the same as the mined block?
     if (playerBreakingMap.containsKey(player.getUniqueId())
-        && !block.equals(playerBreakingMap.get(player.getUniqueId()))) {
-      block.breakNaturally(itemInHand);
-      // Todo: DAMAGE
+        && playerBreakingMap.get(player.getUniqueId()) > 0) {
+      // Remove 1 from the playerBreakingMap value
+      playerBreakingMap.put(player.getUniqueId(), playerBreakingMap.get(player.getUniqueId()) - 1);
+      // Check if event is cancelled
+      if (!event.isCancelled()) {
+        // Check if it can be broken
+        if (canBreakBlock(block, itemInHand)) {
+          block.breakNaturally(itemInHand);
+        }
+        // Todo: DAMAGE
+      }
     } else {
-      // Add the mined block to playerBreakingMap
-      playerBreakingMap.put(player.getUniqueId(), block);
-
       // Get mined blocks face
-      final BlockFace blockFace = playerBlockFaceMap.getOrDefault(player.getUniqueId(), null);
+      final BlockFace blockFace = playerBlockFaceMap.get(player.getUniqueId());
+
+      // Get surrounding blocks
+      final List<Block> surroundingBlocks = BlockManager.getSurroundingBlocks(
+          ToolManager.decodeTier(meta.getCustomModelData()).getBit(), block, blockFace);
+
+      // Add the mined blocks to playerBreakingMap
+      playerBreakingMap.put(player.getUniqueId(), surroundingBlocks.size());
 
       // Iterate through all the blocks to remove
-      for (Block blockToRemove : BlockManager.getSurroundingBlocks(
-          ToolManager.decodeTier(meta.getCustomModelData()).getBit(), block, blockFace)) {
-        // Check if it can be broken
-        if (canBreakBlock(blockToRemove, itemInHand)) {
-          // Start a new instance of BlockBreakEvent that will break the block
-          BlockBreakEvent e = new BlockBreakEvent(blockToRemove, player);
-          Bukkit.getPluginManager().callEvent(e);
-        }
+      for (Block blockToRemove : surroundingBlocks) {
+        // Start a new instance of BlockBreakEvent that will break the block
+        BlockBreakEvent e = new BlockBreakEvent(blockToRemove, player);
+        Bukkit.getPluginManager().callEvent(e);
       }
-
-      // Remove the mined block from playerBreakingMap
-      playerBreakingMap.remove(player.getUniqueId());
     }
 
     // Remove BlockFace as it's not needed anymore
