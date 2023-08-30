@@ -1,14 +1,18 @@
 package com.betarealms.hammerswelldone.events;
 
+import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -16,6 +20,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 /**
@@ -88,7 +93,41 @@ public class OnBlockBreak implements Listener {
         if (canBreakBlock(block, itemInHand)) {
           block.breakNaturally(itemInHand);
         }
-        // Todo: DAMAGE
+        int damageModifier = 1;
+        // Get tool level and add damageModifier
+        switch (ToolManager.decodeTier(meta.getCustomModelData())) {
+          case ADVANCED -> damageModifier += 2; // Given the amount of resources: +200% durability
+          case GOD -> damageModifier += 9; // Given the amount of resources: +900% durability
+        }
+        // Add more damageModifier for SUPER
+        if (ToolManager.decodeType(meta.getCustomModelData()) == Type.SUPER) {
+          damageModifier *= 4; // It is composed of four tools
+          damageModifier += 3; // Account for additional materials used to craft the SUPER
+        }
+        // Account for enchantments
+        if (meta.hasEnchant(Enchantment.DURABILITY)) {
+          damageModifier += meta.getEnchantLevel(Enchantment.DURABILITY);
+        }
+        // Get random
+        Random rand = new Random();
+        int r = rand.nextInt(100) + 1;
+        // Calculate chance for damaging
+        if (r <= (100) / (damageModifier)) {
+          // Deal damage to the item
+          Damageable itemDamageable = (Damageable) meta;
+          itemDamageable.setDamage(itemDamageable.getDamage() + 1);
+          itemInHand.setItemMeta(itemDamageable);
+          // Is the item broken?
+          if (itemDamageable.getDamage() >= itemInHand.getType().getMaxDurability()) {
+            // Remove the item from hand
+            player.getInventory().setItemInMainHand(null);
+            // Play breaking sound
+            player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 1F, 1F);
+            // Stop the event
+            event.setCancelled(true);
+            playerBreakingMap.put(player.getUniqueId(), 0);
+          }
+        }
       }
     } else {
       // Get mined blocks face
@@ -104,8 +143,8 @@ public class OnBlockBreak implements Listener {
       // Iterate through all the blocks to remove
       for (Block blockToRemove : surroundingBlocks) {
         // Start a new instance of BlockBreakEvent that will break the block
-        BlockBreakEvent e = new BlockBreakEvent(blockToRemove, player);
-        Bukkit.getPluginManager().callEvent(e);
+        BlockBreakEvent eventBlockBreak = new BlockBreakEvent(blockToRemove, player);
+        Bukkit.getPluginManager().callEvent(eventBlockBreak);
       }
     }
 
