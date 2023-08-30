@@ -58,7 +58,29 @@ public class ToolManager {
 
   }
 
+  /*
+   * Returns the Tool based on the provided Material and Tier as an ItemStack.
+   */
   public static ItemStack getItemStack(Material material, Type type, Tier tier) {
     return getItemStack(material, Objects.requireNonNull(Tool.getTool(type, tier)));
+  }
+
+  /**
+   * Check whether a tool is a Tier 2 or Tier 3 tool.
+   */
+  public static boolean isCustomTool(ItemStack item) {
+    if (item.getItemMeta() == null) {
+      return false;
+    }
+    return isCustomTool(item.getItemMeta());
+  }
+
+  /**
+   * Check whether a tool is a Tier 2 or Tier 3 tool.
+   */
+  public static boolean isCustomTool(ItemMeta meta) {
+    return (meta.hasCustomModelData()
+        && (ToolManager.decodeTier(meta.getCustomModelData()) == Tier.ADVANCED
+        || ToolManager.decodeTier(meta.getCustomModelData()) == Tier.GOD));
   }
 }

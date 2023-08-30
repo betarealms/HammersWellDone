@@ -79,7 +79,7 @@ public class CustomRecipeDefinitions {
         // Add a block
         customRecipe.setIngredient('B', new ItemStack(entry.getValue()[1]));
 
-        // Define vanilla type
+        // Define vanilla types
         final Type[] vanillaTypes
             = new Type[] {Type.PICKAXE, Type.SHOVEL, Type.AXE, Type.HOE};
 
@@ -120,6 +120,7 @@ public class CustomRecipeDefinitions {
     materials.put("IRON", new Material[] {Material.IRON_INGOT, Material.IRON_BLOCK});
     materials.put("GOLDEN", new Material[] {Material.GOLD_INGOT, Material.GOLD_BLOCK});
     materials.put("DIAMOND", new Material[] {Material.DIAMOND, Material.DIAMOND_BLOCK});
+    materials.put("NETHERITE", new Material[] {Material.DIAMOND, Material.DIAMOND_BLOCK});
 
     // Initialize recipes
     List<CustomRecipe> recipes = new ArrayList<>();
