@@ -1,6 +1,7 @@
 package com.betarealms.hammerswelldone;
 
 import com.betarealms.hammerswelldone.events.OnBlockBreak;
+import com.betarealms.hammerswelldone.events.OnPrepareSmithing;
 import com.betarealms.hammerswelldone.utils.CustomRecipeManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -18,8 +19,11 @@ public final class HammersWellDone extends JavaPlugin {
   @Override
   public void onEnable() {
     // Register events
-    getServer().getPluginManager().registerEvents(new CustomRecipeManager(), this);
+    getServer().getPluginManager().registerEvents(new OnPrepareSmithing(), this);
     getServer().getPluginManager().registerEvents(new OnBlockBreak(), this);
+
+    // Initialize recipes
+    CustomRecipeManager.initializeRecipes();
 
     getLogger().info("Enabled");
 

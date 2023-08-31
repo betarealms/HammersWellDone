@@ -1,106 +1,183 @@
 package com.betarealms.hammerswelldone.utils;
 
-import com.betarealms.hammerswelldone.definitions.CustomRecipeDefinitions;
-import com.betarealms.hammerswelldone.objects.CustomRecipe;
+import com.betarealms.hammerswelldone.HammersWellDone;
+import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.types.Type;
-import java.util.List;
-import java.util.Objects;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.PrepareItemCraftEvent;
-import org.bukkit.event.inventory.PrepareSmithingEvent;
-import org.bukkit.inventory.CraftingInventory;
+import java.util.HashMap;
+import java.util.Map;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * This class handles all custom recipe management logic.
  */
-public class CustomRecipeManager implements Listener {
-  private final List<CustomRecipe> customRecipes;
-
-  public CustomRecipeManager() {
-    this.customRecipes = CustomRecipeDefinitions.getRecipes();
-  }
+public class CustomRecipeManager {
 
   /**
-   * This method is called when a player changes items in workbench.
-   *
-   * @param event prepare item
+   * This class is used to initialize all the custom recipes.
    */
-  @EventHandler
-  public void onCraftItem(PrepareItemCraftEvent event) {
-    CraftingInventory inv = event.getInventory();
-    for (CustomRecipe recipe : customRecipes) {
-      if (isMatchingRecipe(inv, recipe)) {
-        inv.setResult(recipe.getOutput());
-        return;
+  public static void initializeRecipes() {
+    // Initialize materials
+    final HashMap<String, Material[]> materials = initializeMaterials();
+
+    // Initialize all tools except SUPER
+    initializeTools(materials);
+
+    // Initialize SUPERs separately, since they have a different recipe
+    initializeSupers(materials);
+  }
+
+  // Initialize SUPERs
+  private static void initializeSupers(HashMap<String, Material[]> materials) {
+    // Get plugin instance
+    Plugin plugin = JavaPlugin.getPlugin(HammersWellDone.class);
+    // Iterate through all tiers
+    for (Tier tier : Tier.values()) {
+      // Iterate through all materials
+      for (Map.Entry<String, Material[]> entry : materials.entrySet()) {
+        // Get output item (use SWORD for the SUPER)
+        ItemStack outputItem = ToolManager.getItemStack(
+            Material.getMaterial(entry.getKey() + "_SWORD"), Type.SUPER, tier);
+
+        // Get input pickaxe
+        ItemStack inputPickaxe = tier == Tier.VANILLA
+            ? new ItemStack(
+            getMaterialFromType(entry.getKey(), Type.PICKAXE))
+            : ToolManager.getItemStack(
+            getMaterialFromType(entry.getKey(), Type.PICKAXE),
+            Type.PICKAXE, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD);
+
+        // Get input shovel
+        ItemStack inputShovel = tier == Tier.VANILLA
+            ? new ItemStack(
+            getMaterialFromType(entry.getKey(), Type.SHOVEL))
+            : ToolManager.getItemStack(
+            getMaterialFromType(entry.getKey(), Type.SHOVEL),
+            Type.SHOVEL, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD);
+
+        // Get input axe
+        ItemStack inputAxe = tier == Tier.VANILLA
+            ? new ItemStack(
+            getMaterialFromType(entry.getKey(), Type.AXE))
+            : ToolManager.getItemStack(
+            getMaterialFromType(entry.getKey(), Type.AXE),
+            Type.AXE, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD);
+
+        // Get input hoe
+        ItemStack inputHoe = tier == Tier.VANILLA
+            ? new ItemStack(
+            getMaterialFromType(entry.getKey(), Type.HOE))
+            : ToolManager.getItemStack(
+            getMaterialFromType(entry.getKey(), Type.HOE),
+            Type.HOE, tier == Tier.ADVANCED ? Tier.ADVANCED : Tier.GOD);
+
+        // Create a new key
+        NamespacedKey key = new NamespacedKey(plugin,
+            entry.getKey() + "_SUPER_" + tier.name());
+
+        // Create a custom recipe
+        ShapedRecipe recipe = new ShapedRecipe(key, outputItem);
+
+        // Add recipe shape
+        recipe.shape("MPM", "SBA", "MHM");
+
+        // Add recipe ingredients
+        // TO DO: Wood in M and B
+        // Add a material
+        recipe.setIngredient('M', entry.getValue()[0]);
+
+        // Add a block
+        recipe.setIngredient('B', entry.getValue()[1]);
+
+        // Add a pickaxe
+        recipe.setIngredient('P', new RecipeChoice.ExactChoice(inputPickaxe));
+
+        // Add a shovel
+        recipe.setIngredient('S', new RecipeChoice.ExactChoice(inputShovel));
+
+        // Add an axe
+        recipe.setIngredient('A', new RecipeChoice.ExactChoice(inputAxe));
+
+        // Add a hoe
+        recipe.setIngredient('H', new RecipeChoice.ExactChoice(inputHoe));
+
+        // Add the recipe
+        Bukkit.addRecipe(recipe);
       }
     }
   }
 
-  private boolean isMatchingRecipe(CraftingInventory inv, CustomRecipe recipe) {
-    ItemStack[][] layout = recipe.getLayout();
-    for (int row = 0; row < 3; row++) {
-      for (int col = 0; col < 3; col++) {
-        ItemStack invItem = inv.getItem(row * 3 + col + 1);
-        ItemStack layoutItem = layout[row][col];
-        if (!isMatchingItem(invItem, layoutItem)) {
-          return false;
+  // Initialize ADVANCED and GOD tools except for SUPERs
+  private static void initializeTools(HashMap<String, Material[]> materials) {
+    // Get plugin instance
+    Plugin plugin = JavaPlugin.getPlugin(HammersWellDone.class);
+    // Iterate through all tools except for SUPER (vanilla tools)
+    for (Type type : new Type[] {Type.PICKAXE, Type.SHOVEL, Type.AXE, Type.HOE}) {
+      // Iterate through all tiers except for VANILLA
+      for (Tier tier : new Tier[] {Tier.ADVANCED, Tier.GOD}) {
+        // Iterate through all materials
+        for (Map.Entry<String, Material[]> entry : materials.entrySet()) {
+          // Get output item
+          ItemStack outputItem = ToolManager.getItemStack(Material.getMaterial(
+              entry.getKey() + "_" + type.name()), type, tier);
+
+          // Get input item
+          ItemStack inputItem = tier == Tier.ADVANCED
+              ? new ItemStack(
+              getMaterialFromType(entry.getKey(), type))
+              : ToolManager.getItemStack(
+              getMaterialFromType(entry.getKey(), type), type, Tier.ADVANCED);
+
+          // Create a new key
+          NamespacedKey key = new NamespacedKey(plugin,
+              entry.getKey() + "_" + type.name() + "_" + tier.name());
+
+          // Create a custom recipe
+          ShapedRecipe recipe = new ShapedRecipe(key, outputItem);
+
+          // Add recipe shape
+          recipe.shape("VM ", "MTM", "SMV");
+
+          // Add recipe ingredients
+          // Add a material or a block depending on the tier - TO DO: WOOD
+          recipe.setIngredient('V', entry.getValue()[tier.getBit() - 1]);
+
+          // Add a material
+          recipe.setIngredient('M', entry.getValue()[0]);
+
+          // Add a center tool
+          recipe.setIngredient('T', new RecipeChoice.ExactChoice(inputItem));
+
+          // Add a stick
+          recipe.setIngredient('S', Material.STICK);
+
+          // Add the recipe
+          Bukkit.addRecipe(recipe);
         }
       }
     }
-    return true;
   }
 
-  private boolean isMatchingItem(ItemStack invItem, ItemStack layoutItem) {
-    // If both items are null, they are the same
-    if (layoutItem == null && invItem == null) {
-      return true;
-    }
-
-    // If only one of them is null, they are not
-    if (layoutItem == null || invItem == null) {
-      return false;
-    }
-
-    // Prevent NullPointerException
-    if (layoutItem.getItemMeta() == null
-        || invItem.getItemMeta() == null) {
-      return false;
-    }
-
-    // Check if custom model data of layoutItem and invItem are different
-    if (layoutItem.getItemMeta().hasCustomModelData()
-          && (!invItem.getItemMeta().hasCustomModelData()
-          || invItem.getItemMeta().getCustomModelData()
-              != layoutItem.getItemMeta().getCustomModelData())) {
-      return false;
-    }
-
-    // Check if custom model data of layoutItem and invItem are the same
-    if (invItem.getItemMeta().hasCustomModelData()
-          && !layoutItem.getItemMeta().hasCustomModelData()) {
-      return false;
-    }
-
-    return layoutItem.getType().equals(invItem.getType());
+  // Initialize materials used to craft the tools
+  private static HashMap<String, Material[]> initializeMaterials() {
+    final HashMap<String, Material[]> materials = new HashMap<>(5);
+    materials.put("WOODEN", new Material[] {Material.OAK_PLANKS, Material.OAK_LOG});
+    materials.put("STONE", new Material[] {Material.COBBLESTONE, Material.STONE});
+    materials.put("IRON", new Material[] {Material.IRON_INGOT, Material.IRON_BLOCK});
+    materials.put("GOLDEN", new Material[] {Material.GOLD_INGOT, Material.GOLD_BLOCK});
+    materials.put("DIAMOND", new Material[] {Material.DIAMOND, Material.DIAMOND_BLOCK});
+    materials.put("NETHERITE", new Material[] {Material.DIAMOND, Material.DIAMOND_BLOCK});
+    return materials;
   }
 
-  /**
-   * This is used to block upgrading SUPER tools to netherite.
-   *
-   * @param event PrepareItemCraftEvent
-   */
-  @EventHandler
-  public void onPrepareSmithing(PrepareSmithingEvent event) {
-    // Get the items in the input slots
-    ItemStack[] inputs = event.getInventory().getContents();
-
-    // Check if item in slot 1 is a SUPER tool
-    if (inputs[1] != null
-        && ToolManager.isCustomTool(Objects.requireNonNull(inputs[1].getItemMeta()))
-        && ToolManager.decodeType(inputs[1].getItemMeta().getCustomModelData()) == Type.SUPER) {
-      event.setResult(null);
-    }
+  // Gets material from string and type
+  private static Material getMaterialFromType(String material, Type type) {
+    return Material.getMaterial(material + "_" + type.name());
   }
 }

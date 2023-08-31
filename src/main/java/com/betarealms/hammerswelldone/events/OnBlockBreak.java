@@ -98,6 +98,7 @@ public class OnBlockBreak implements Listener {
         switch (ToolManager.decodeTier(meta.getCustomModelData())) {
           case ADVANCED -> damageModifier += 2; // Given the amount of resources: +200% durability
           case GOD -> damageModifier += 9; // Given the amount of resources: +900% durability
+          default -> { }
         }
         // Add more damageModifier for SUPER
         if (ToolManager.decodeType(meta.getCustomModelData()) == Type.SUPER) {
