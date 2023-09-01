@@ -1,8 +1,10 @@
 package com.betarealms.hammerswelldone.events;
 
+import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -174,7 +176,10 @@ public class OnBlockBreak implements Listener {
       final BlockFace blockFace = playerBlockFaceMap.get(player.getUniqueId());
 
       // Get surrounding blocks
-      final List<Block> surroundingBlocks = BlockManager.getSurroundingBlocks(
+      final List<Block> surroundingBlocks = ToolManager.decodeTier(meta.getCustomModelData()) ==
+          Tier.VANILLA
+          ? Arrays.asList(block)
+          : BlockManager.getSurroundingBlocks(
           ToolManager.decodeTier(meta.getCustomModelData()).getBit(), block, blockFace);
 
       // Add the mined blocks to playerBreakingMap
@@ -215,7 +220,7 @@ public class OnBlockBreak implements Listener {
     // Create a backup in case target block drops nothing
     HashMap<Type, Material> backupMap = new HashMap<>(typeMap);
 
-    // Test whether there is a tool that drops more than one item
+    // Test whether there is a tool that drops no items
     for (HashMap.Entry<Type, Material> entry : new HashMap<>(typeMap).entrySet()) {
       if (block.getDrops(new ItemStack(entry.getValue())).isEmpty()) {
         typeMap.remove(entry.getKey());
@@ -234,6 +239,7 @@ public class OnBlockBreak implements Listener {
 
     // Test for tool breaking speed
     float bestBreakSpeed = 0.0f;
+    Type bestType = null;
 
     try {
       for (HashMap.Entry<Type, Material> entry : new HashMap<>(typeMap).entrySet()) {
@@ -244,20 +250,19 @@ public class OnBlockBreak implements Listener {
         // Get breakSpeed
         float breakSpeed = block.getBreakSpeed(player);
 
-        // Is it smaller than or equal to the bestBreakSpeed?
-        if (breakSpeed <= bestBreakSpeed) {
-          typeMap.remove(entry.getKey());
-        } else {
+        // Is it bigger than the bestBreakSpeed?
+        if (breakSpeed > bestBreakSpeed) {
           bestBreakSpeed = breakSpeed;
+          bestType = entry.getKey();
         }
       }
     } finally {
       // Return the original player's tool
       player.getInventory().setItemInMainHand(itemInHand);
-    }
 
-    // Return the best tool. If there's multiple left, they should be equal
-    return typeMap.keySet().iterator().next();
+      // Return the best tool
+      return bestType;
+    }
   }
 
   private static boolean canBreakBlock(Player player, Block block) {
