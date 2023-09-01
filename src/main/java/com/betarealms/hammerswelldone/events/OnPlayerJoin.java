@@ -26,10 +26,10 @@ public class OnPlayerJoin implements Listener {
     while (recipes.hasNext()) {
       Recipe recipe = recipes.next();
       if (!(recipe instanceof Keyed keyedRecipe)) {
-        continue;
+        return;
       }
-      if (keyedRecipe.getKey().toString().contains("HWD_")) {
-        continue;
+      if (!keyedRecipe.getKey().toString().contains("HWD_")) {
+        return;
       }
       player.discoverRecipe(keyedRecipe.getKey());
     }
