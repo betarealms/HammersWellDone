@@ -4,7 +4,6 @@ import com.betarealms.hammerswelldone.types.Tier;
 import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -178,7 +177,7 @@ public class OnBlockBreak implements Listener {
       // Get surrounding blocks
       final List<Block> surroundingBlocks = ToolManager.decodeTier(meta.getCustomModelData()) ==
           Tier.VANILLA
-          ? Arrays.asList(block)
+          ? List.of(block)
           : BlockManager.getSurroundingBlocks(
           ToolManager.decodeTier(meta.getCustomModelData()).getBit(), block, blockFace);
 
@@ -259,10 +258,10 @@ public class OnBlockBreak implements Listener {
     } finally {
       // Return the original player's tool
       player.getInventory().setItemInMainHand(itemInHand);
-
-      // Return the best tool
-      return bestType;
     }
+
+    // Return the best tool
+    return bestType;
   }
 
   private static boolean canBreakBlock(Player player, Block block) {
