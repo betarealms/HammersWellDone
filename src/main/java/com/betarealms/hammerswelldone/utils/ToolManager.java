@@ -66,21 +66,12 @@ public class ToolManager {
   }
 
   /**
-   * Check whether a tool is a Tier 2 or Tier 3 tool.
-   */
-  public static boolean isCustomTool(ItemStack item) {
-    if (item.getItemMeta() == null) {
-      return false;
-    }
-    return isCustomTool(item.getItemMeta());
-  }
-
-  /**
-   * Check whether a tool is a Tier 2 or Tier 3 tool.
+   * Check whether a tool is a Tier 2 or Tier 3 tool or a SUPER.
    */
   public static boolean isCustomTool(ItemMeta meta) {
     return (meta.hasCustomModelData()
         && (ToolManager.decodeTier(meta.getCustomModelData()) == Tier.ADVANCED
-        || ToolManager.decodeTier(meta.getCustomModelData()) == Tier.GOD));
+        || ToolManager.decodeTier(meta.getCustomModelData()) == Tier.GOD
+        || ToolManager.decodeType(meta.getCustomModelData()) == Type.SUPER));
   }
 }

@@ -44,9 +44,9 @@ public enum Tool {
   CROPMASTER(Type.HOE, Tier.GOD, "Cropmaster"),
 
   // Super family
-  HANDYTOOL(Type.SUPER, Tier.VANILLA, "HandyTool [WIP]"),
-  MULTITOOL(Type.SUPER, Tier.ADVANCED, "MultiTool [WIP]"),
-  DEITYTOOL(Type.SUPER, Tier.GOD, "DeityTool [WIP]"),
+  HANDYTOOL(Type.SUPER, Tier.VANILLA, "HandyTool"),
+  MULTITOOL(Type.SUPER, Tier.ADVANCED, "MultiTool"),
+  DEITYTOOL(Type.SUPER, Tier.GOD, "DeityTool"),
   ;
 
   // Init variables
@@ -84,7 +84,7 @@ public enum Tool {
     loreType.put(Type.SHOVEL, "This is a Shovel substitute.");
     loreType.put(Type.AXE, "This is an Axe substitute.");
     loreType.put(Type.HOE, "This is a Hoe substitute.");
-    loreType.put(Type.SUPER, "This works as all tools in one.");
+    loreType.put(Type.SUPER, "This can mine as all tools in one.");
   }
 
   // Get strings for Lore based on Tier

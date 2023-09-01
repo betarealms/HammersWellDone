@@ -3,8 +3,8 @@ package com.betarealms.hammerswelldone.events;
 import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +45,41 @@ public class OnBlockBreak implements Listener {
     BlockFace face = event.getBlockFace();
     UUID playerUnique = event.getPlayer().getUniqueId();
     playerBlockFaceMap.put(playerUnique, face);
+
+    // Get player and block
+    Player player = event.getPlayer();
+    Block block = event.getClickedBlock();
+
+    if (block == null) {
+      return;
+    }
+
+    // SUPER handling
+    ItemStack itemInHand = player.getInventory().getItemInMainHand();
+    ItemMeta meta = itemInHand.getItemMeta();
+    if (meta == null) {
+      return;
+    }
+
+    // Is it a custom tool and a SUPER?
+    if (ToolManager.isCustomTool(meta)
+        && ToolManager.decodeType(itemInHand.getItemMeta().getCustomModelData()) == Type.SUPER) {
+      // Check what is the best tool to mine the block with
+      Type bestType = getBestType(player, block);
+      Type currentType = ToolManager.decodeType(itemInHand.getItemMeta().getCustomModelData());
+      // Switch to that tool
+      if (bestType != currentType) {
+        // Get current material
+        String currentMaterialName = itemInHand.getType().name().split("_")[0];
+
+        // Get new material
+        Material targetMaterial = Material.getMaterial(currentMaterialName + "_" + bestType.name());
+
+        // Set target material
+        itemInHand.setType(targetMaterial);
+        player.getInventory().setItemInMainHand(itemInHand);
+      }
+    }
   }
 
   /**
@@ -156,66 +191,92 @@ public class OnBlockBreak implements Listener {
     playerBlockFaceMap.remove(player.getUniqueId());
   }
 
-  private static boolean canBreakBlock(Player player, Block block) {
+  private static Type getBestType(Player player, Block block) {
+    // Create a HashMap of all the types
+    HashMap<Type, Material> typeMap = new HashMap<>();
+    typeMap.put(Type.PICKAXE, Material.NETHERITE_PICKAXE);
+    typeMap.put(Type.SHOVEL, Material.NETHERITE_SHOVEL);
+    typeMap.put(Type.AXE, Material.NETHERITE_AXE);
+    typeMap.put(Type.HOE, Material.NETHERITE_HOE);
+
     // Test for preferred tool
-    if (!block.isPreferredTool(player.getInventory().getItemInMainHand())) {
-      return false;
+    for (HashMap.Entry<Type, Material> entry : new HashMap<>(typeMap).entrySet()) {
+      if (!block.isPreferredTool(new ItemStack(entry.getValue()))) {
+        typeMap.remove(entry.getKey());
+      }
     }
 
-    // Get tools to test the block with
-    Material[] testTools = new Material[] {
-        Material.NETHERITE_PICKAXE,
-        Material.NETHERITE_SHOVEL,
-        Material.NETHERITE_AXE,
-        Material.NETHERITE_HOE};
+    // Check whether only one type is left
+    if (typeMap.size() == 1) {
+      return typeMap.keySet().iterator().next();
+    }
+
+    // Create a backup in case target block drops nothing
+    HashMap<Type, Material> backupMap = new HashMap<>(typeMap);
+
+    // Test whether there is a tool that drops more than one item
+    for (HashMap.Entry<Type, Material> entry : new HashMap<>(typeMap).entrySet()) {
+      if (block.getDrops(new ItemStack(entry.getValue())).isEmpty()) {
+        typeMap.remove(entry.getKey());
+      }
+    }
+
+    // Check whether all tools were removed
+    if (typeMap.isEmpty()) {
+      typeMap.putAll(backupMap);
+    } else if (typeMap.size() == 1) { // Else check whether there is only one type
+      return typeMap.keySet().iterator().next();
+    }
 
     // Get player's item in hand
     final ItemStack itemInHand = player.getInventory().getItemInMainHand();
 
-    // Get amount of dropped items with the player's tool
-    int dropSize = block.getDrops(itemInHand).size();
+    // Test for tool breaking speed
+    float bestBreakSpeed = 0.0f;
 
-    // Test if there's any drops with one of the other tools
-    if (dropSize == 0) {
-      for (Material tool : testTools) {
-        if (!block.getDrops(new ItemStack(tool)).isEmpty()) {
-          return false;
-        }
-      }
-    }
-
-    // Get breaking speed with itemInHand
-    float breakSpeed = block.getBreakSpeed(player);
-
-    // Check whether block is unbreakable
-    if (Math.signum(breakSpeed) == 0) {
-      return false;
-    }
-
-    // Test whether a tool with better breaking speed exists
     try {
-      // Skip this check if the item in hand is a SUPER
-      if (ToolManager.decodeType(Objects.requireNonNull(
-          itemInHand.getItemMeta()).getCustomModelData()) != Type.SUPER) {
-        // Loop through all the possible tools
-        for (Material tool : testTools) {
-          // Create a new testing tool and add it to player's hand
-          ItemStack newItem = new ItemStack(tool);
-          player.getInventory().setItemInMainHand(newItem);
+      for (HashMap.Entry<Type, Material> entry : new HashMap<>(typeMap).entrySet()) {
+        // Create a new testing tool and add it to player's hand
+        ItemStack newItem = new ItemStack(entry.getValue());
+        player.getInventory().setItemInMainHand(newItem);
 
-          // Get new breaking speed
-          float testBreakSpeed = block.getBreakSpeed(player);
+        // Get breakSpeed
+        float breakSpeed = block.getBreakSpeed(player);
 
-          // Check whether it's faster
-          if (testBreakSpeed > breakSpeed) {
-            return false;
-          }
+        // Is it smaller than or equal to the bestBreakSpeed?
+        if (breakSpeed <= bestBreakSpeed) {
+          typeMap.remove(entry.getKey());
+        } else {
+          bestBreakSpeed = breakSpeed;
         }
       }
     } finally {
       // Return the original player's tool
       player.getInventory().setItemInMainHand(itemInHand);
     }
+
+    // Return the best tool. If there's multiple left, they should be equal
+    return typeMap.keySet().iterator().next();
+  }
+
+  private static boolean canBreakBlock(Player player, Block block) {
+    // Check whether block is unbreakable
+    float breakSpeed = block.getBreakSpeed(player);
+    if (Math.signum(breakSpeed) == 0) {
+      return false;
+    }
+
+    ItemStack itemInHand = player.getInventory().getItemInMainHand();
+    ItemMeta meta = itemInHand.getItemMeta();
+
+    // Check whether player's tool is the best tool if not SUPER
+    if (meta != null && ToolManager.decodeType(meta.getCustomModelData()) != Type.SUPER) {
+      Type type = ToolManager.decodeType(meta.getCustomModelData());
+      Type bestType = getBestType(player, block);
+
+      return type == bestType;
+    }
+
     return true;
   }
 }
