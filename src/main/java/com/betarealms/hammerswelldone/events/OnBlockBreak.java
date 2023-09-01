@@ -76,6 +76,7 @@ public class OnBlockBreak implements Listener {
         Material targetMaterial = Material.getMaterial(currentMaterialName + "_" + bestType.name());
 
         // Set target material
+        assert targetMaterial != null;
         itemInHand.setType(targetMaterial);
         player.getInventory().setItemInMainHand(itemInHand);
       }

@@ -79,7 +79,7 @@ public class CustomRecipeManager {
 
         // Create a new key
         NamespacedKey key = new NamespacedKey(plugin,
-            entry.getKey() + "_SUPER_" + tier.name());
+            "HWD_" + entry.getKey() + "_SUPER_" + tier.name());
 
         // Create a custom recipe
         ShapedRecipe recipe = new ShapedRecipe(key, outputItem);
@@ -136,7 +136,7 @@ public class CustomRecipeManager {
 
           // Create a new key
           NamespacedKey key = new NamespacedKey(plugin,
-              entry.getKey() + "_" + type.name() + "_" + tier.name());
+              "HWD_" + entry.getKey() + "_" + type.name() + "_" + tier.name());
 
           // Create a custom recipe
           ShapedRecipe recipe = new ShapedRecipe(key, outputItem);
