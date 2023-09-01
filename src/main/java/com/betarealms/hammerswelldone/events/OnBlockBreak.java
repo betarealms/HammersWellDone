@@ -4,6 +4,7 @@ import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,34 +91,36 @@ public class OnBlockBreak implements Listener {
       // Check if event is cancelled
       if (!event.isCancelled()) {
         // Check if it can be broken
-        if (canBreakBlock(block, itemInHand)) {
+        if (canBreakBlock(player, block)) {
           block.breakNaturally(itemInHand);
-        }
-        int damageModifier = 1;
-        // Get tool level and add damageModifier
-        switch (ToolManager.decodeTier(meta.getCustomModelData())) {
-          case ADVANCED -> damageModifier += 2; // Given the amount of resources: +200% durability
-          case GOD -> damageModifier += 9; // Given the amount of resources: +900% durability
-          default -> { }
-        }
-        // Add more damageModifier for SUPER
-        if (ToolManager.decodeType(meta.getCustomModelData()) == Type.SUPER) {
-          damageModifier *= 4; // It is composed of four tools
-          damageModifier += 3; // Account for additional materials used to craft the SUPER
-        }
-        // Account for enchantments
-        if (meta.hasEnchant(Enchantment.DURABILITY)) {
-          damageModifier += meta.getEnchantLevel(Enchantment.DURABILITY);
-        }
-        // Get random
-        Random rand = new Random();
-        int r = rand.nextInt(100) + 1;
-        // Calculate chance for damaging
-        if (r <= (100) / (damageModifier)) {
-          // Deal damage to the item
+          int damageModifier = 1;
+          // Get tool level and add damageModifier
+          switch (ToolManager.decodeTier(meta.getCustomModelData())) {
+            case ADVANCED -> damageModifier += 2; // Given the amount of resources: +200% durability
+            case GOD -> damageModifier += 9; // Given the amount of resources: +900% durability
+            default -> { }
+          }
+          // Add more damageModifier for SUPER
+          if (ToolManager.decodeType(meta.getCustomModelData()) == Type.SUPER) {
+            damageModifier *= 4; // It is composed of four tools
+            damageModifier += 3; // Account for additional materials used to craft the SUPER
+          }
+          // Account for enchantments
+          if (meta.hasEnchant(Enchantment.DURABILITY)) {
+            damageModifier += meta.getEnchantLevel(Enchantment.DURABILITY);
+          }
+          // Get random
+          Random rand = new Random();
+          int r = rand.nextInt(100) + 1;
+
           Damageable itemDamageable = (Damageable) meta;
-          itemDamageable.setDamage(itemDamageable.getDamage() + 1);
-          itemInHand.setItemMeta(itemDamageable);
+          // Calculate chance for damaging
+          if (r <= (100) / (damageModifier)) {
+            // Deal damage to the item
+            itemDamageable.setDamage(itemDamageable.getDamage() + 1);
+            itemInHand.setItemMeta(itemDamageable);
+            player.getInventory().setItemInMainHand(itemInHand);
+          }
           // Is the item broken?
           if (itemDamageable.getDamage() >= itemInHand.getType().getMaxDurability()) {
             // Remove the item from hand
@@ -153,7 +156,66 @@ public class OnBlockBreak implements Listener {
     playerBlockFaceMap.remove(player.getUniqueId());
   }
 
-  private static boolean canBreakBlock(Block block, ItemStack itemInHand) {
-    return block.isPreferredTool(itemInHand);
+  private static boolean canBreakBlock(Player player, Block block) {
+    // Test for preferred tool
+    if (!block.isPreferredTool(player.getInventory().getItemInMainHand())) {
+      return false;
+    }
+
+    // Get tools to test the block with
+    Material[] testTools = new Material[] {
+        Material.NETHERITE_PICKAXE,
+        Material.NETHERITE_SHOVEL,
+        Material.NETHERITE_AXE,
+        Material.NETHERITE_HOE};
+
+    // Get player's item in hand
+    final ItemStack itemInHand = player.getInventory().getItemInMainHand();
+
+    // Get amount of dropped items with the player's tool
+    int dropSize = block.getDrops(itemInHand).size();
+
+    // Test if there's any drops with one of the other tools
+    if (dropSize == 0) {
+      for (Material tool : testTools) {
+        if (!block.getDrops(new ItemStack(tool)).isEmpty()) {
+          return false;
+        }
+      }
+    }
+
+    // Get breaking speed with itemInHand
+    float breakSpeed = block.getBreakSpeed(player);
+
+    // Check whether block is unbreakable
+    if (Math.signum(breakSpeed) == 0) {
+      return false;
+    }
+
+    // Test whether a tool with better breaking speed exists
+    try {
+      // Skip this check if the item in hand is a SUPER
+      if (ToolManager.decodeType(Objects.requireNonNull(
+          itemInHand.getItemMeta()).getCustomModelData()) != Type.SUPER) {
+        // Loop through all the possible tools
+        for (Material tool : testTools) {
+          // Create a new testing tool and add it to player's hand
+          ItemStack newItem = new ItemStack(tool);
+          player.getInventory().setItemInMainHand(newItem);
+
+          // Get new breaking speed
+          float testBreakSpeed = block.getBreakSpeed(player);
+
+          // Check whether it's faster
+          if (testBreakSpeed > breakSpeed) {
+            return false;
+          }
+        }
+      }
+    } finally {
+      // Return the original player's tool
+      player.getInventory().setItemInMainHand(itemInHand);
+    }
+    return true;
   }
 }
