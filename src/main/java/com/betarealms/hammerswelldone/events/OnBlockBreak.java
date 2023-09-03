@@ -16,6 +16,7 @@ import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -32,6 +33,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 public class OnBlockBreak implements Listener {
   // This is used to keep track whether to stay in the block breaking loop.
   private final ConcurrentHashMap<UUID, Integer> playerBreakingMap = new ConcurrentHashMap<>();
+
+  // This is used to keep track of experience during block breaking
+  private final ConcurrentHashMap<UUID, Integer> playerExpMap = new ConcurrentHashMap<>();
 
   /**
    * This triggers on player , for ex. when punching.
@@ -126,6 +130,12 @@ public class OnBlockBreak implements Listener {
       if (!canBreakBlock(player, block)) {
         return;
       }
+
+      // Add experience to drop later
+      playerExpMap.put(player.getUniqueId(),
+          playerExpMap.get(player.getUniqueId())
+          + calculateXpToDrop(block.getType()));
+
       // Break the block
       block.breakNaturally(itemInHand);
 
@@ -150,11 +160,20 @@ public class OnBlockBreak implements Listener {
       // Add the mined blocks to playerBreakingMap
       playerBreakingMap.put(player.getUniqueId(), surroundingBlocks.size());
 
+      // Create a new entry in playerExpMap
+      playerExpMap.put(player.getUniqueId(), 0);
+
       // Iterate through all the blocks to remove
       for (Block blockToRemove : surroundingBlocks) {
         // Start a new instance of BlockBreakEvent that will break the block
         BlockBreakEvent eventBlockBreak = new BlockBreakEvent(blockToRemove, player);
         Bukkit.getPluginManager().callEvent(eventBlockBreak);
+      }
+
+      // Drop XP
+      int xpToDrop = playerExpMap.get(player.getUniqueId());
+      if (xpToDrop > 0) {
+        block.getWorld().spawn(block.getLocation(), ExperienceOrb.class).setExperience(xpToDrop);
       }
     }
   }
@@ -292,11 +311,39 @@ public class OnBlockBreak implements Listener {
     }
   }
 
+  /**
+   * Get Block Face of the block player is looking at.
+   * Big thanks to <a href="https://www.spigotmc.org/threads/getting-the-blockface-of-a-targeted-block.319181/">Benz56</a> for this beautiful solution.
+   *
+   * @param player player
+   * @return Block Face
+   */
   private BlockFace getBlockFace(Player player) {
     List<Block> lastTwoTargetBlocks = player.getLastTwoTargetBlocks(null, 100);
     if (lastTwoTargetBlocks.size() != 2 || !lastTwoTargetBlocks.get(1).getType().isOccluding()) return null;
     Block targetBlock = lastTwoTargetBlocks.get(1);
     Block adjacentBlock = lastTwoTargetBlocks.get(0);
     return targetBlock.getFace(adjacentBlock);
+  }
+
+  /**
+   * This is used as a workaround to calculate XP drops on block breaking.
+   *
+   * @param material block material
+   * @return amount of xp
+   */
+  private int calculateXpToDrop(Material material) {
+    Random rand = new Random();
+    return switch (material) {
+      case COAL_ORE -> rand.nextInt(3);
+      case NETHER_GOLD_ORE -> rand.nextInt(2);
+      case DIAMOND_ORE, EMERALD_ORE -> rand.nextInt((7 - 3) + 1) + 3;
+      case LAPIS_ORE, NETHER_QUARTZ_ORE -> rand.nextInt((5 - 2) + 1) + 2;
+      case REDSTONE_ORE -> rand.nextInt((5 - 1) + 1) + 1;
+      case SPAWNER -> rand.nextInt((43 - 15) + 1) + 15;
+      case SCULK -> 1;
+      case SCULK_SENSOR, SCULK_SHRIEKER, SCULK_CATALYST -> 5;
+      default -> 0;
+    };
   }
 }
