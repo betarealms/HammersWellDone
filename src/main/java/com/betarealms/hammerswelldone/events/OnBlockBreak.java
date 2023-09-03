@@ -1,6 +1,7 @@
 package com.betarealms.hammerswelldone.events;
 
 import com.betarealms.hammerswelldone.types.Tier;
+import com.betarealms.hammerswelldone.types.Tool;
 import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
@@ -10,11 +11,13 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -29,11 +32,11 @@ import org.bukkit.inventory.meta.ItemMeta;
  * This class handles block breaking.
  */
 public class OnBlockBreak implements Listener {
-  // Using a HashMap to store the BlockFace for each player.
-  private final ConcurrentHashMap<UUID, BlockFace> playerBlockFaceMap = new ConcurrentHashMap<>();
-
   // This is used to keep track whether to stay in the block breaking loop.
   private final ConcurrentHashMap<UUID, Integer> playerBreakingMap = new ConcurrentHashMap<>();
+
+  // This is used to keep track of experience during block breaking
+  private final ConcurrentHashMap<UUID, Integer> playerExpMap = new ConcurrentHashMap<>();
 
   /**
    * This triggers on player , for ex. when punching.
@@ -42,11 +45,6 @@ public class OnBlockBreak implements Listener {
    */
   @EventHandler
   public void onPlayerInteract(PlayerInteractEvent event) {
-    // Store the BlockFace when player starts to interact with a block
-    BlockFace face = event.getBlockFace();
-    UUID playerUnique = event.getPlayer().getUniqueId();
-    playerBlockFaceMap.put(playerUnique, face);
-
     // Get player and block
     Player player = event.getPlayer();
     Block block = event.getClickedBlock();
@@ -69,7 +67,7 @@ public class OnBlockBreak implements Listener {
       Type bestType = getBestType(player, block);
       Type currentType = ToolManager.decodeType(itemInHand.getItemMeta().getCustomModelData());
       // Switch to that tool
-      if (bestType != currentType) {
+      if (bestType != null && bestType != currentType) {
         // Get current material
         String currentMaterialName = itemInHand.getType().name().split("_")[0];
 
@@ -126,57 +124,36 @@ public class OnBlockBreak implements Listener {
       // Remove 1 from the playerBreakingMap value
       playerBreakingMap.put(player.getUniqueId(), playerBreakingMap.get(player.getUniqueId()) - 1);
       // Check if event is cancelled
-      if (!event.isCancelled()) {
-        // Check if it can be broken
-        if (canBreakBlock(player, block)) {
-          block.breakNaturally(itemInHand);
-          int damageModifier = 1;
-          // Get tool level and add damageModifier
-          switch (ToolManager.decodeTier(meta.getCustomModelData())) {
-            case ADVANCED -> damageModifier += 2; // Given the amount of resources: +200% durability
-            case GOD -> damageModifier += 9; // Given the amount of resources: +900% durability
-            default -> { }
-          }
-          // Add more damageModifier for SUPER
-          if (ToolManager.decodeType(meta.getCustomModelData()) == Type.SUPER) {
-            damageModifier *= 4; // It is composed of four tools
-            damageModifier += 3; // Account for additional materials used to craft the SUPER
-          }
-          // Account for enchantments
-          if (meta.hasEnchant(Enchantment.DURABILITY)) {
-            damageModifier += meta.getEnchantLevel(Enchantment.DURABILITY);
-          }
-          // Get random
-          Random rand = new Random();
-          int r = rand.nextInt(100) + 1;
-
-          Damageable itemDamageable = (Damageable) meta;
-          // Calculate chance for damaging
-          if (r <= (100) / (damageModifier)) {
-            // Deal damage to the item
-            itemDamageable.setDamage(itemDamageable.getDamage() + 1);
-            itemInHand.setItemMeta(itemDamageable);
-            player.getInventory().setItemInMainHand(itemInHand);
-          }
-          // Is the item broken?
-          if (itemDamageable.getDamage() >= itemInHand.getType().getMaxDurability()) {
-            // Remove the item from hand
-            player.getInventory().setItemInMainHand(null);
-            // Play breaking sound
-            player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 1F, 1F);
-            // Stop the event
-            event.setCancelled(true);
-            playerBreakingMap.put(player.getUniqueId(), 0);
-          }
-        }
+      if (event.isCancelled()) {
+        return;
       }
+      // Check if it can be broken
+      if (!canBreakBlock(player, block)) {
+        return;
+      }
+
+      // Add experience to drop later
+      playerExpMap.put(player.getUniqueId(),
+          playerExpMap.get(player.getUniqueId())
+          + calculateXpToDrop(block.getType()));
+
+      // Break the block
+      block.breakNaturally(itemInHand);
+
+      // Damage the item
+      damageTool(player, itemInHand, event);
     } else {
-      // Get mined blocks face
-      final BlockFace blockFace = playerBlockFaceMap.get(player.getUniqueId());
+      // Get blockFace
+      BlockFace blockFace = getBlockFace(player);
+
+      if (blockFace == null) {
+        player.sendMessage(ChatColor.RED + "BlockFace is NULL, please report this bug.");
+        return;
+      }
 
       // Get surrounding blocks
-      final List<Block> surroundingBlocks = ToolManager.decodeTier(meta.getCustomModelData()) ==
-          Tier.VANILLA
+      final List<Block> surroundingBlocks = ToolManager.decodeTier(meta.getCustomModelData())
+          == Tier.VANILLA
           ? List.of(block)
           : BlockManager.getSurroundingBlocks(
           ToolManager.decodeTier(meta.getCustomModelData()).getBit(), block, blockFace);
@@ -184,16 +161,22 @@ public class OnBlockBreak implements Listener {
       // Add the mined blocks to playerBreakingMap
       playerBreakingMap.put(player.getUniqueId(), surroundingBlocks.size());
 
+      // Create a new entry in playerExpMap
+      playerExpMap.put(player.getUniqueId(), 0);
+
       // Iterate through all the blocks to remove
       for (Block blockToRemove : surroundingBlocks) {
         // Start a new instance of BlockBreakEvent that will break the block
         BlockBreakEvent eventBlockBreak = new BlockBreakEvent(blockToRemove, player);
         Bukkit.getPluginManager().callEvent(eventBlockBreak);
       }
-    }
 
-    // Remove BlockFace as it's not needed anymore
-    playerBlockFaceMap.remove(player.getUniqueId());
+      // Drop XP
+      int xpToDrop = playerExpMap.get(player.getUniqueId());
+      if (xpToDrop > 0) {
+        block.getWorld().spawn(block.getLocation(), ExperienceOrb.class).setExperience(xpToDrop);
+      }
+    }
   }
 
   private static Type getBestType(Player player, Block block) {
@@ -274,14 +257,118 @@ public class OnBlockBreak implements Listener {
     ItemStack itemInHand = player.getInventory().getItemInMainHand();
     ItemMeta meta = itemInHand.getItemMeta();
 
-    // Check whether player's tool is the best tool if not SUPER
-    if (meta != null && ToolManager.decodeType(meta.getCustomModelData()) != Type.SUPER) {
+    // Null pointer check
+    if (meta == null) {
+      return false;
+    }
+
+    // Check whether the player's tool is the best tool if not SUPER
+    if (ToolManager.decodeType(meta.getCustomModelData()) != Type.SUPER) {
       Type type = ToolManager.decodeType(meta.getCustomModelData());
       Type bestType = getBestType(player, block);
 
-      return type == bestType;
+      if (type != bestType) {
+        return false;
+      }
+    }
+
+    // Check whether the player's tool's material is good enough by using drops comparison
+    if (block.getDrops(itemInHand).isEmpty()) {
+      // Iterate through materialNames
+      for (String materialName : Tool.getMaterialNames().keySet()) {
+        // Get material
+        Material material = Material.getMaterial(
+            materialName + "_" + meta.getDisplayName().split("_")[1]);
+        // Check if there's any drops
+        assert material != null;
+        if (!block.getDrops(new ItemStack(material)).isEmpty()) {
+          return false;
+        }
+      }
     }
 
     return true;
+  }
+
+  private void damageTool(Player player, ItemStack itemInHand, BlockBreakEvent event) {
+    // Get item meta
+    ItemMeta meta = itemInHand.getItemMeta();
+    assert meta != null;
+
+    int damageModifier = 1;
+    // Get tool level and add damageModifier
+    switch (ToolManager.decodeTier(meta.getCustomModelData())) {
+      case ADVANCED -> damageModifier += 2; // Given the amount of resources: +200% durability
+      case GOD -> damageModifier += 9; // Given the amount of resources: +900% durability
+      default -> { }
+    }
+    // Add more damageModifier for SUPER
+    if (ToolManager.decodeType(meta.getCustomModelData()) == Type.SUPER) {
+      damageModifier *= 4; // It is composed of four tools
+      damageModifier += 3; // Account for additional materials used to craft the SUPER
+    }
+    // Account for enchantments
+    if (meta.hasEnchant(Enchantment.DURABILITY)) {
+      damageModifier += meta.getEnchantLevel(Enchantment.DURABILITY);
+    }
+    // Get random
+    Random rand = new Random();
+    int r = rand.nextInt(100) + 1;
+    Damageable itemDamageable = (Damageable) meta;
+    // Calculate chance for damaging
+    if (r <= (100) / (damageModifier)) {
+      // Deal damage to the item
+      itemDamageable.setDamage(itemDamageable.getDamage() + 1);
+      itemInHand.setItemMeta(itemDamageable);
+      player.getInventory().setItemInMainHand(itemInHand);
+    }
+    // Is the item broken?
+    if (itemDamageable.getDamage() >= itemInHand.getType().getMaxDurability()) {
+      // Remove the item from hand
+      player.getInventory().setItemInMainHand(null);
+      // Play breaking sound
+      player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 1F, 1F);
+      // Stop the event
+      event.setCancelled(true);
+      playerBreakingMap.put(player.getUniqueId(), 0);
+    }
+  }
+
+  /**
+   * Get Block Face of the block player is looking at.
+   * Big thanks to <a href="https://www.spigotmc.org/threads/getting-the-blockface-of-a-targeted-block.319181/">Benz56</a> for this beautiful solution.
+   *
+   * @param player player
+   * @return Block Face
+   */
+  private BlockFace getBlockFace(Player player) {
+    List<Block> lastTwoTargetBlocks = player.getLastTwoTargetBlocks(null, 100);
+    if (lastTwoTargetBlocks.size() != 2 || !lastTwoTargetBlocks.get(1).getType().isOccluding()) {
+      return null;
+    }
+    Block targetBlock = lastTwoTargetBlocks.get(1);
+    Block adjacentBlock = lastTwoTargetBlocks.get(0);
+    return targetBlock.getFace(adjacentBlock);
+  }
+
+  /**
+   * This is used as a workaround to calculate XP drops on block breaking.
+   *
+   * @param material block material
+   * @return amount of xp
+   */
+  private int calculateXpToDrop(Material material) {
+    Random rand = new Random();
+    return switch (material) {
+      case COAL_ORE -> rand.nextInt(3);
+      case NETHER_GOLD_ORE -> rand.nextInt(2);
+      case DIAMOND_ORE, EMERALD_ORE -> rand.nextInt((7 - 3) + 1) + 3;
+      case LAPIS_ORE, NETHER_QUARTZ_ORE -> rand.nextInt((5 - 2) + 1) + 2;
+      case REDSTONE_ORE -> rand.nextInt((5 - 1) + 1) + 1;
+      case SPAWNER -> rand.nextInt((43 - 15) + 1) + 15;
+      case SCULK -> 1;
+      case SCULK_SENSOR, SCULK_SHRIEKER, SCULK_CATALYST -> 5;
+      default -> 0;
+    };
   }
 }

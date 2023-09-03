@@ -157,5 +157,14 @@ public enum Tool {
     }
     return null;
   }
+
+  /**
+   * Gets materialNames unmodifiable map.
+   *
+   * @return map of material names
+   */
+  public static Map<String, String> getMaterialNames() {
+    return materialNames;
+  }
 }
 
