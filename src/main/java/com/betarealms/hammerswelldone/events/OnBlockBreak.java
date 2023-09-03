@@ -1,6 +1,7 @@
 package com.betarealms.hammerswelldone.events;
 
 import com.betarealms.hammerswelldone.types.Tier;
+import com.betarealms.hammerswelldone.types.Tool;
 import com.betarealms.hammerswelldone.types.Type;
 import com.betarealms.hammerswelldone.utils.BlockManager;
 import com.betarealms.hammerswelldone.utils.ToolManager;
@@ -151,8 +152,8 @@ public class OnBlockBreak implements Listener {
       }
 
       // Get surrounding blocks
-      final List<Block> surroundingBlocks = ToolManager.decodeTier(meta.getCustomModelData()) ==
-          Tier.VANILLA
+      final List<Block> surroundingBlocks = ToolManager.decodeTier(meta.getCustomModelData())
+          == Tier.VANILLA
           ? List.of(block)
           : BlockManager.getSurroundingBlocks(
           ToolManager.decodeTier(meta.getCustomModelData()).getBit(), block, blockFace);
@@ -256,12 +257,34 @@ public class OnBlockBreak implements Listener {
     ItemStack itemInHand = player.getInventory().getItemInMainHand();
     ItemMeta meta = itemInHand.getItemMeta();
 
-    // Check whether player's tool is the best tool if not SUPER
-    if (meta != null && ToolManager.decodeType(meta.getCustomModelData()) != Type.SUPER) {
+    // Null pointer check
+    if (meta == null) {
+      return false;
+    }
+
+    // Check whether the player's tool is the best tool if not SUPER
+    if (ToolManager.decodeType(meta.getCustomModelData()) != Type.SUPER) {
       Type type = ToolManager.decodeType(meta.getCustomModelData());
       Type bestType = getBestType(player, block);
 
-      return type == bestType;
+      if (type != bestType) {
+        return false;
+      }
+    }
+
+    // Check whether the player's tool's material is good enough by using drops comparison
+    if (block.getDrops(itemInHand).isEmpty()) {
+      // Iterate through materialNames
+      for (String materialName : Tool.getMaterialNames().keySet()) {
+        // Get material
+        Material material = Material.getMaterial(
+            materialName + "_" + meta.getDisplayName().split("_")[1]);
+        // Check if there's any drops
+        assert material != null;
+        if (!block.getDrops(new ItemStack(material)).isEmpty()) {
+          return false;
+        }
+      }
     }
 
     return true;
@@ -320,7 +343,9 @@ public class OnBlockBreak implements Listener {
    */
   private BlockFace getBlockFace(Player player) {
     List<Block> lastTwoTargetBlocks = player.getLastTwoTargetBlocks(null, 100);
-    if (lastTwoTargetBlocks.size() != 2 || !lastTwoTargetBlocks.get(1).getType().isOccluding()) return null;
+    if (lastTwoTargetBlocks.size() != 2 || !lastTwoTargetBlocks.get(1).getType().isOccluding()) {
+      return null;
+    }
     Block targetBlock = lastTwoTargetBlocks.get(1);
     Block adjacentBlock = lastTwoTargetBlocks.get(0);
     return targetBlock.getFace(adjacentBlock);
